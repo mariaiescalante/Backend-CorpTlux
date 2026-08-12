@@ -1,0 +1,10 @@
+export * as authController from "./auth.controller";
+export * as adminUserController from "./adminUser.controller";
+export * as roleController from "./role.controller";
+export * as permissionController from "./permission.controller";
+export * as categoryController from "./category.controller";
+export * as tagController from "./tag.controller";
+export * as faqCategoryController from "./faqCategory.controller";
+export * as faqController from "./faq.controller";
+export * as mediaController from "./media.controller";
+export * as articleController from "./article.controller";

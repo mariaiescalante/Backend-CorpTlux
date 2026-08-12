@@ -1,0 +1,16 @@
+export * as adminUserModel from "./adminUser.model";
+export * as adminSessionModel from "./adminSession.model";
+export * as passwordResetTokenModel from "./passwordResetToken.model";
+export * as roleModel from "./role.model";
+export * as permissionModel from "./permission.model";
+export * as activityLogModel from "./activityLog.model";
+export * as categoryModel from "./category.model";
+export * as tagModel from "./tag.model";
+export * as faqCategoryModel from "./faqCategory.model";
+export * as faqModel from "./faq.model";
+export * as mediaModel from "./media.model";
+export * as articleModel from "./article.model";
+export * as articleRevisionModel from "./articleRevision.model";
+export * as articleTagModel from "./articleTag.model";
+export * as articleMediaModel from "./articleMedia.model";
+export * as rolePermissionModel from "./rolePermission.model";

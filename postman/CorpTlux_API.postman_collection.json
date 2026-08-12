@@ -1,0 +1,822 @@
+{
+  "info": {
+    "name": "CorpTlux API",
+    "description": "API del CMS de CorpTlux. Autenticación JWT + CRUD de artículos, categorías, tags, FAQs, media y administración.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@corptlux.com\",\n  \"password\": \"admin123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  pm.test('Token guardado', () => pm.expect(json.token).to.not.be.empty);",
+                  "} else {",
+                  "  pm.test('Login correcto', () => pm.response.to.have.status(200));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me (perfil + permisos)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Solicitar reset de contraseña",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@corptlux.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "password-reset", "request"]
+            }
+          }
+        },
+        {
+          "name": "Restablecer contraseña",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"TOKEN_DE_PRUEBA\",\n  \"password\": \"nueva123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/password-reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "password-reset"]
+            }
+          }
+        },
+        {
+          "name": "Cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"admin123\",\n  \"newPassword\": \"nueva123\",\n  \"confirmPassword\": \"nueva123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Articles",
+      "item": [
+        {
+          "name": "Listar artículos (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/articles?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["articles"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar artículos publicados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/articles?status=published",
+              "host": ["{{baseUrl}}"],
+              "path": ["articles"],
+              "query": [{ "key": "status", "value": "published" }]
+            }
+          }
+        },
+        {
+          "name": "Obtener artículo por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/articles/1", "host": ["{{baseUrl}}"], "path": ["articles", "1"] }
+          }
+        },
+        {
+          "name": "Incrementar vistas",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/articles/1/views", "host": ["{{baseUrl}}"], "path": ["articles", "1", "views"] }
+          }
+        },
+        {
+          "name": "Crear artículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"title\": { \"es\": \"Mi primer artículo\", \"en\": \"My first article\" },\n  \"excerpt\": { \"es\": \"Resumen corto\" },\n  \"content\": { \"es\": \"<p>Contenido del artículo</p>\" },\n  \"slug\": { \"es\": \"mi-primer-articulo\", \"en\": \"my-first-article\" },\n  \"status\": \"published\",\n  \"tag_ids\": [1],\n  \"media_ids\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/articles", "host": ["{{baseUrl}}"], "path": ["articles"] }
+          }
+        },
+        {
+          "name": "Actualizar artículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"archived\",\n  \"is_featured\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/articles/1", "host": ["{{baseUrl}}"], "path": ["articles", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar artículo",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/articles/1", "host": ["{{baseUrl}}"], "path": ["articles", "1"] }
+          }
+        },
+        {
+          "name": "Listar revisiones",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/articles/1/revisions",
+              "host": ["{{baseUrl}}"],
+              "path": ["articles", "1", "revisions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Listar categorías",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener categoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          }
+        },
+        {
+          "name": "Crear categoría",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": { \"es\": \"Noticias\", \"en\": \"News\" },\n  \"slug\": { \"es\": \"noticias\", \"en\": \"news\" },\n  \"description\": { \"es\": \"Noticias de la empresa\" },\n  \"status\": \"active\",\n  \"position\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Actualizar categoría",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": 2,\n  \"status\": \"inactive\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar categoría",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Listar tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tags", "host": ["{{baseUrl}}"], "path": ["tags"] }
+          }
+        },
+        {
+          "name": "Obtener tag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          }
+        },
+        {
+          "name": "Crear tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": { \"es\": \"Tecnología\", \"en\": \"Technology\" },\n  \"slug\": { \"es\": \"tecnologia\", \"en\": \"technology\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/tags", "host": ["{{baseUrl}}"], "path": ["tags"] }
+          }
+        },
+        {
+          "name": "Actualizar tag",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": { \"es\": \"Tech\", \"en\": \"Tech\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar tag",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FAQs",
+      "item": [
+        {
+          "name": "Listar categorías FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faqs/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["faqs", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Crear categoría FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": { \"es\": \"Cuentas\", \"en\": \"Accounts\" },\n  \"status\": \"active\",\n  \"position\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/faqs/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["faqs", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Listar FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/faqs", "host": ["{{baseUrl}}"], "path": ["faqs"] }
+          }
+        },
+        {
+          "name": "Crear FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faq_category_id\": 1,\n  \"question\": { \"es\": \"¿Cómo creo una cuenta?\", \"en\": \"How do I create an account?\" },\n  \"answer\": { \"es\": \"Solo ve a la sección registrarse.\", \"en\": \"Just go to the sign-up section.\" },\n  \"status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/faqs", "host": ["{{baseUrl}}"], "path": ["faqs"] }
+          }
+        },
+        {
+          "name": "Obtener FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/faqs/1", "host": ["{{baseUrl}}"], "path": ["faqs", "1"] }
+          }
+        },
+        {
+          "name": "Actualizar FAQ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/faqs/1", "host": ["{{baseUrl}}"], "path": ["faqs", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar FAQ",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/faqs/1", "host": ["{{baseUrl}}"], "path": ["faqs", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "item": [
+        {
+          "name": "Listar media",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/media?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["media"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar media",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"cloudinary\",\n  \"public_id\": \"fotos/logo\",\n  \"url\": \"https://res.cloudinary.com/xyz/image/upload/v1/logo.png\",\n  \"mime_type\": \"image/png\",\n  \"width\": 800,\n  \"height\": 600,\n  \"size_bytes\": 20480,\n  \"alt_text\": { \"es\": \"Logo CorpTlux\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/media", "host": ["{{baseUrl}}"], "path": ["media"] }
+          }
+        },
+        {
+          "name": "Obtener media",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/media/1", "host": ["{{baseUrl}}"], "path": ["media", "1"] }
+          }
+        },
+        {
+          "name": "Actualizar media",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alt_text\": { \"es\": \"Nuevo texto alternativo\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/media/1", "host": ["{{baseUrl}}"], "path": ["media", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar media",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/media/1", "host": ["{{baseUrl}}"], "path": ["media", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Users",
+      "item": [
+        {
+          "name": "Perfil",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_id\": 2,\n  \"name\": \"Editor\",\n  \"email\": \"editor@corptlux.com\",\n  \"password_hash\": \"editor123\",\n  \"status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users"]
+            }
+          }
+        },
+        {
+          "name": "Obtener usuario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Administrador Principal\",\n  \"status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "2"]
+            }
+          }
+        },
+        {
+          "name": "Logs de actividad",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users/logs?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users", "logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Listar roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/roles", "host": ["{{baseUrl}}"], "path": ["roles"] }
+          }
+        },
+        {
+          "name": "Obtener rol",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/roles/1", "host": ["{{baseUrl}}"], "path": ["roles", "1"] }
+          }
+        },
+        {
+          "name": "Crear rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"editor\",\n  \"description\": \"Puede gestionar contenido\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/roles", "host": ["{{baseUrl}}"], "path": ["roles"] }
+          }
+        },
+        {
+          "name": "Actualizar rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Descripción actualizada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/roles/1", "host": ["{{baseUrl}}"], "path": ["roles", "1"] }
+          }
+        },
+        {
+          "name": "Eliminar rol",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/roles/1", "host": ["{{baseUrl}}"], "path": ["roles", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Listar permisos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions"]
+            }
+          }
+        },
+        {
+          "name": "Permisos de un rol",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/permissions/roles/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions", "roles", "1"]
+            }
+          }
+        },
+        {
+          "name": "Asignar permisos a rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [1, 2, 3, 4, 5]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/permissions/roles/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions", "roles", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seguridad (pruebas de validación)",
+      "item": [
+        {
+          "name": "Login con email inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"invalido\",\n  \"password\": \"123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login con campo extra (400 strict)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@corptlux.com\",\n  \"password\": \"admin123\",\n  \"hack\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Id inválido (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/articles/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["articles", "abc"]
+            }
+          }
+        },
+        {
+          "name": "Ruta inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/no-existe",
+              "host": ["{{baseUrl}}"],
+              "path": ["no-existe"]
+            }
+          }
+        },
+        {
+          "name": "Sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin-users"]
+            }
+          }
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    }
+  ]
+}
