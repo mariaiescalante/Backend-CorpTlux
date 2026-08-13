@@ -81,6 +81,23 @@ describe("POST /api/auth/logout", () => {
       .set("Authorization", `Bearer ${login.body.token}`);
     expect(res.status).toBe(200);
   });
+
+  it("revoca la sesión: el token deja de ser válido tras logout", async () => {
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    expect(login.status).toBe(200);
+
+    const logout = await request(app)
+      .post("/api/auth/logout")
+      .set("Authorization", `Bearer ${login.body.token}`);
+    expect(logout.status).toBe(200);
+
+    const me = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${login.body.token}`);
+    expect(me.status).toBe(401);
+  });
 });
 
 describe("POST /api/auth/password-reset", () => {

@@ -1,11 +1,8 @@
 import crypto from "crypto";
 import { config } from "../config";
 import { sendEmail } from "./emailService";
+import { sha256 } from "../utils/crypto";
 import * as passwordResetTokenModel from "../models/passwordResetToken.model";
-
-function sha256(value: string): string {
-  return crypto.createHash("sha256").update(value).digest("hex");
-}
 
 function resetUrl(token: string): string {
   return `${config.appUrl}/reset-password?token=${token}`;

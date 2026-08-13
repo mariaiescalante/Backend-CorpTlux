@@ -8,7 +8,9 @@ import { makeCrudController } from "../utils/crudController";
 import { toSafeUser } from "../utils/toSafeUser";
 import { AuthRequest } from "../middleware/auth";
 
-export const adminUserController = makeCrudController<adminUserModel.AdminUserInput>({
+type AdminUserCreateInput = Omit<adminUserModel.AdminUserInput, "password_hash"> & { password: string };
+
+export const adminUserController = makeCrudController<AdminUserCreateInput>({
   findAll: async (page = 1, limit = 20) => {
     const { rows, total } = await adminUserModel.findAll(page, limit);
     return { items: rows.map(toSafeUser), total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -17,19 +19,21 @@ export const adminUserController = makeCrudController<adminUserModel.AdminUserIn
     const user = await adminUserModel.findById(id);
     return user ? toSafeUser(user) : undefined;
   },
-  create: async (data, actorId) => {
+  create: async ({ password, ...data }, actorId) => {
     const existing = await adminUserModel.findByEmail(data.email);
     if (existing) {
       throw new ApiError(409, "Ya existe un usuario con ese email");
     }
-    const passwordHash = await hashPassword(data.password_hash);
+    const passwordHash = await hashPassword(password);
     return adminUserModel.create({ ...data, password_hash: passwordHash });
   },
   update: async (id, data, actorId) => {
-    if (data.password_hash) {
-      data.password_hash = await hashPassword(data.password_hash);
+    const { password, email: _email, ...rest } = data;
+    if (password) {
+      await adminUserModel.update(id, { ...rest, password_hash: await hashPassword(password) });
+    } else {
+      await adminUserModel.update(id, rest);
     }
-    await adminUserModel.update(id, data);
   },
   remove: adminUserModel.remove,
 }, "admin_user");

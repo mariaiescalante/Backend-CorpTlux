@@ -53,6 +53,10 @@ export const updateArticle = asyncHandler(async (req: AuthRequest, res: Response
 
 export const deleteArticle = asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id, 10);
+  const item = await articleModel.findById(id);
+  if (!item) {
+    throw new ApiError(404, "Artículo no encontrado");
+  }
   await articleModel.remove(id);
   await activityLogModel.log(req.adminUserId!, "delete", "article", id);
   res.json({ message: "Artículo eliminado" });

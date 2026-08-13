@@ -45,12 +45,12 @@ router.get("/:id", validate({ params: idParam }), requirePermission("admin_user.
  *         application/json:
  *           schema:
  *             type: object
- *             required: [role_id, name, email, password_hash]
+ *             required: [role_id, name, email, password]
  *             properties:
  *               role_id: { type: integer }
  *               name: { type: string }
  *               email: { type: string, format: email }
- *               password_hash: { type: string, minLength: 6 }
+ *               password: { type: string, minLength: 6 }
  *               status: { type: string, enum: [active, inactive, suspended] }
  *     responses:
  *       201: { description: Creado }

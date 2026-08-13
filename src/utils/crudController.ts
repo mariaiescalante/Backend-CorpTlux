@@ -17,6 +17,24 @@ function actorIdOf(req: Request): number | undefined {
   return (req as AuthRequest).adminUserId;
 }
 
+const SENSITIVE_KEYS = ["password", "password_hash", "token", "token_hash", "currentPassword", "newPassword"];
+
+function sanitizeForLog(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForLog);
+  }
+  if (value && typeof value === "object") {
+    const copy: Record<string, unknown> = { ...(value as Record<string, unknown>) };
+    for (const key of SENSITIVE_KEYS) {
+      if (key in copy) {
+        copy[key] = "[redacted]";
+      }
+    }
+    return copy;
+  }
+  return value;
+}
+
 export function makeCrudController<Input>(service: CrudService<Input>, entityName = "recurso") {
   return {
     list: asyncHandler(async (req: Request, res: Response) => {
@@ -37,7 +55,7 @@ export function makeCrudController<Input>(service: CrudService<Input>, entityNam
       const actorId = actorIdOf(req);
       const id = await service.create(req.body as Input, actorId);
       if (actorId && id) {
-        await activityLogModel.log(actorId, "create", entityName, id, req.body);
+        await activityLogModel.log(actorId, "create", entityName, id, sanitizeForLog(req.body));
       }
       const item = await service.findById(id);
       res.status(201).json({ id, item });
@@ -47,13 +65,17 @@ export function makeCrudController<Input>(service: CrudService<Input>, entityNam
       const actorId = actorIdOf(req);
       await service.update(id, req.body as Partial<Input>, actorId);
       if (actorId) {
-        await activityLogModel.log(actorId, "update", entityName, id, req.body);
+        await activityLogModel.log(actorId, "update", entityName, id, sanitizeForLog(req.body));
       }
       res.json({ message: "Actualizado" });
     }),
     remove: asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id, 10);
       const actorId = actorIdOf(req);
+      const item = await service.findById(id);
+      if (!item) {
+        throw new ApiError(404, "Recurso no encontrado");
+      }
       await service.remove(id, actorId);
       if (actorId) {
         await activityLogModel.log(actorId, "delete", entityName, id);

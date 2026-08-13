@@ -38,7 +38,7 @@ export const createAdminUserSchema = z
     role_id: z.number().int().positive(),
     name: z.string().min(1).max(150),
     email: z.string().email(),
-    password_hash: z.string().min(6).max(255),
+    password: z.string().min(6).max(255),
     avatar_media_id: z.number().int().positive().nullable().optional(),
     status: statusEnum.optional(),
   })

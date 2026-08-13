@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import crypto from "crypto";
+import { sha256 } from "../utils/crypto";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { comparePassword, hashPassword } from "../utils/password";
@@ -12,10 +12,6 @@ import { AuthRequest } from "../middleware/auth";
 import { toSafeUser } from "../utils/toSafeUser";
 import { sendPasswordResetEmail } from "../services/passwordRecoveryService";
 import { config } from "../config";
-
-function sha256(value: string): string {
-  return crypto.createHash("sha256").update(value).digest("hex");
-}
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };

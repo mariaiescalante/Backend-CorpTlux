@@ -6,7 +6,7 @@ export const globalRateLimiter = rateLimit({
   max: config.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Demasiadas peticiones. Intenta de nuevo más tarde." },
+  message: { message: "Demasiadas peticiones. Intenta de nuevo más tarde." },
 });
 
 export const loginRateLimiter = rateLimit({
@@ -14,7 +14,7 @@ export const loginRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Demasiados intentos de login. Intenta de nuevo en 15 minutos." },
+  message: { message: "Demasiados intentos de login. Intenta de nuevo en 15 minutos." },
   skipSuccessfulRequests: true,
 });
 
@@ -23,5 +23,5 @@ export const passwordResetRateLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Demasiadas solicitudes de recuperación. Intenta de nuevo en 1 hora." },
+  message: { message: "Demasiadas solicitudes de recuperación. Intenta de nuevo en 1 hora." },
 });
