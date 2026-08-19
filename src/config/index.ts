@@ -27,6 +27,9 @@ const envSchema = Joi.object({
   SMTP_PASSWORD: Joi.string().allow("").default(""),
   MAIL_FROM: Joi.string().allow("").default("CorpTlux <no-reply@corptlux.com>"),
   APP_URL: Joi.string().uri().default("http://localhost:3000"),
+  CLOUDINARY_CLOUD_NAME: Joi.string().allow("").default("dri5k0qio"),
+  CLOUDINARY_API_KEY: Joi.string().allow("").default("434763523713664"),
+  CLOUDINARY_API_SECRET: Joi.string().allow("").default("FH9mpg-eOCuEW8ui5qJucbea6Ac"),
 }).unknown(true);
 
 const { value: env, error } = envSchema.validate(process.env, { abortEarly: false });
@@ -71,4 +74,9 @@ export const config = {
     from: env.MAIL_FROM,
   },
   appUrl: env.APP_URL,
+  cloudinary: {
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    apiSecret: env.CLOUDINARY_API_SECRET,
+  },
 };
