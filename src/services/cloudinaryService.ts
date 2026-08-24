@@ -1,7 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import { config } from "../config";
 
-// Configuración global de Cloudinary con credenciales de config / .env
 cloudinary.config({
   cloud_name: config.cloudinary?.cloudName || process.env.CLOUDINARY_CLOUD_NAME || "dri5k0qio",
   api_key: config.cloudinary?.apiKey || process.env.CLOUDINARY_API_KEY || "434763523713664",
@@ -9,66 +8,73 @@ cloudinary.config({
   secure: true,
 });
 
-/**
- * Suba de forma transparente cualquier URL de imagen externa a tu cuenta de Cloudinary.
- * Si la URL ya pertenece a tu Cloudinary (dri5k0qio), la devuelve intacta sin duplicar.
- */
 export async function uploadImageUrlToCloudinary(
   imageUrl: string,
-  folder: string = "corptlux/articles"
+  folder: string = "corptlux/landing"
 ): Promise<string> {
   if (!imageUrl || typeof imageUrl !== "string") return imageUrl || "";
-
   const trimmed = imageUrl.trim();
-
-  // Si ya está alojada en Cloudinary o es una imagen base64 vacía, retornar directamente
-  if (trimmed.includes("res.cloudinary.com/dri5k0qio") || trimmed.includes("cloudinary.com")) {
+  if (trimmed.includes("res.cloudinary.com") || trimmed.includes("cloudinary.com")) {
     return trimmed;
   }
-
-  // Verificar si es una URL válida (http:// o https://)
-  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+  const isHttp = trimmed.startsWith("http://") || trimmed.startsWith("https://");
+  const isDataUri = trimmed.startsWith("data:image/");
+  if (!isHttp && !isDataUri) {
     return trimmed;
   }
-
   try {
     const uploadResult = await cloudinary.uploader.upload(trimmed, {
       folder,
       resource_type: "auto",
     });
-
-    console.log(`[CLOUDINARY] Imagen procesada y guardada exitosamente: ${uploadResult.secure_url}`);
+    console.log("[CLOUDINARY] Imagen procesada en Cloudinary:", uploadResult.secure_url);
     return uploadResult.secure_url;
   } catch (err: any) {
-    console.warn(`[CLOUDINARY] No se pudo subir imagen externa a Cloudinary, usando URL original. Error: ${err.message}`);
-    return trimmed; // Fallback seguro
+    console.warn("[CLOUDINARY] Error al subir a Cloudinary:", err.message);
+    return trimmed;
   }
 }
 
-/**
- * Escanea un bloque de contenido HTML, detecta todas las etiquetas <img> con src="http..." 
- * y las procesa automáticamente hacia tu cuenta de Cloudinary.
- */
+export async function processObjectImagesWithCloudinary(obj: any, folder: string = "corptlux/landing"): Promise<any> {
+  if (!obj) return obj;
+  if (typeof obj === "string") {
+    if (obj.startsWith("http://") || obj.startsWith("https://") || obj.startsWith("data:image/")) {
+      return await uploadImageUrlToCloudinary(obj, folder);
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    const arr = [];
+    for (const item of obj) {
+      arr.push(await processObjectImagesWithCloudinary(item, folder));
+    }
+    return arr;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      result[k] = await processObjectImagesWithCloudinary(v, folder);
+    }
+    return result;
+  }
+  return obj;
+}
+
 export async function processHtmlImagesWithCloudinary(
   htmlContent: string,
   folder: string = "corptlux/articles"
 ): Promise<string> {
   if (!htmlContent || typeof htmlContent !== "string") return htmlContent || "";
-
   const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
   let match;
   let updatedHtml = htmlContent;
-
   const urlMatches: string[] = [];
   while ((match = imgRegex.exec(htmlContent)) !== null) {
     if (match[1]) {
       urlMatches.push(match[1]);
     }
   }
-
-  // Eliminar duplicados
   const uniqueUrls = Array.from(new Set(urlMatches));
-
   for (const originalUrl of uniqueUrls) {
     if (originalUrl && (originalUrl.startsWith("http://") || originalUrl.startsWith("https://"))) {
       const cloudinaryUrl = await uploadImageUrlToCloudinary(originalUrl, folder);
@@ -77,6 +83,5 @@ export async function processHtmlImagesWithCloudinary(
       }
     }
   }
-
   return updatedHtml;
 }
