@@ -6,6 +6,7 @@ const JSON_COLS = ["name", "description", "slug", "meta_title", "meta_descriptio
 
 export interface Category {
   id: number;
+  type: string;
   parent_id: number | null;
   cover_media_id: number | null;
   name: unknown;
@@ -21,7 +22,13 @@ export interface Category {
   updated_at: Date | string;
 }
 
+export interface CategoryFilter {
+  type?: string;
+  status?: "active" | "inactive";
+}
+
 export interface CategoryInput {
+  type?: string;
   parent_id?: number | null;
   cover_media_id?: number | null;
   name: unknown;
@@ -33,11 +40,24 @@ export interface CategoryInput {
   status?: "active" | "inactive";
 }
 
-export async function findAll(page = 1, limit = 20): Promise<{ rows: Category[]; total: number }> {
+export async function findAll(filter: CategoryFilter = {}, page = 1, limit = 50): Promise<{ rows: Category[]; total: number }> {
   const offset = (page - 1) * limit;
-  const [countRows] = await pool.query("SELECT COUNT(*) AS total FROM categories");
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (filter.type) {
+    conditions.push("type = ?");
+    params.push(filter.type);
+  }
+  if (filter.status) {
+    conditions.push("status = ?");
+    params.push(filter.status);
+  }
+
+  const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+  const [countRows] = await pool.query("SELECT COUNT(*) AS total FROM categories " + where, params);
   const total = (countRows as { total: number }[])[0].total;
-  const [rows] = await pool.query("SELECT * FROM categories ORDER BY position, id LIMIT ? OFFSET ?", [limit, offset]);
+  const [rows] = await pool.query("SELECT * FROM categories " + where + " ORDER BY position, id LIMIT ? OFFSET ?", [...params, limit, offset]);
   return {
     rows: (rows as Category[]).map((r) => jsonColumns(r as unknown as Record<string, unknown>, JSON_COLS)) as unknown as Category[],
     total,
@@ -52,10 +72,9 @@ export async function findById(id: number): Promise<Category | undefined> {
 
 export async function create(data: CategoryInput): Promise<number> {
   const [result] = await pool.query(
-    `INSERT INTO categories
-       (parent_id, cover_media_id, name, description, slug, meta_title, meta_description, position, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    "INSERT INTO categories (type, parent_id, cover_media_id, name, description, slug, meta_title, meta_description, position, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
+      data.type ?? "blog",
       data.parent_id ?? null,
       data.cover_media_id ?? null,
       JSON.stringify(data.name),
@@ -76,18 +95,9 @@ export async function update(id: number, data: Partial<CategoryInput>): Promise<
     throw new ApiError(404, "Categoría no encontrada");
   }
   await pool.query(
-    `UPDATE categories SET
-       parent_id = ?,
-       cover_media_id = ?,
-       name = ?,
-       description = ?,
-       slug = ?,
-       meta_title = ?,
-       meta_description = ?,
-       position = COALESCE(?, position),
-       status = COALESCE(?, status)
-     WHERE id = ?`,
+    "UPDATE categories SET type = COALESCE(?, type), parent_id = ?, cover_media_id = ?, name = ?, description = ?, slug = ?, meta_title = ?, meta_description = ?, position = COALESCE(?, position), status = COALESCE(?, status) WHERE id = ?",
     [
+      data.type ?? null,
       data.parent_id === undefined ? current.parent_id : data.parent_id,
       data.cover_media_id === undefined ? current.cover_media_id : data.cover_media_id,
       data.name === undefined ? JSON.stringify(current.name) : JSON.stringify(data.name),

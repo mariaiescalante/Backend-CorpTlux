@@ -10,6 +10,8 @@ import mediaRoutes from "./media.routes";
 import articleRoutes from "./article.routes";
 import leadRoutes from "./lead.routes";
 import landingRoutes from "./landing.routes";
+import sectionAnalyticsRoutes from "./sectionAnalytics.routes";
+import translateRoutes from "./translate.routes";
 
 const router = Router();
 
@@ -24,6 +26,8 @@ router.use("/media", mediaRoutes);
 router.use("/articles", articleRoutes);
 router.use("/leads", leadRoutes);
 router.use("/landing", landingRoutes);
+router.use("/analytics", sectionAnalyticsRoutes);
+router.use("/translate", translateRoutes);
 
 router.get("/health", (_req, res) => {
   res.json({ status: "ok" });

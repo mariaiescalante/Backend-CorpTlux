@@ -39,9 +39,15 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     email: user.email,
   });
 
-  const expiresAt = new Date(
-    Date.now() + (config.jwt.expiresIn.endsWith("d") ? parseInt(config.jwt.expiresIn, 10) * 86400000 : 7 * 86400000)
-  );
+  const parseExpiresIn = (val: string): number => {
+    if (val.endsWith('d')) return parseInt(val, 10) * 86400000;
+    if (val.endsWith('h')) return parseInt(val, 10) * 3600000;
+    if (val.endsWith('m')) return parseInt(val, 10) * 60000;
+    if (val.endsWith('s')) return parseInt(val, 10) * 1000;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? 7200000 : num;
+  };
+  const expiresAt = new Date(Date.now() + parseExpiresIn(config.jwt.expiresIn));
   const tokenHash = sha256(token);
   const sessionId = await adminSessionModel.create({
     admin_user_id: user.id,

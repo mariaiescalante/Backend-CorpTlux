@@ -1,13 +1,59 @@
-import * as faqCategoryModel from "../models/faqCategory.model";
-import { makeCrudController } from "../utils/crudController";
+import { Request, Response } from "express";
+import * as categoryModel from "../models/category.model";
+import { asyncHandler } from "../utils/asyncHandler";
+import { ApiError } from "../utils/ApiError";
+import * as activityLogModel from "../models/activityLog.model";
+import { AuthRequest } from "../middleware/auth";
 
-export const faqCategoryController = makeCrudController<faqCategoryModel.FaqCategoryInput>({
-  findAll: async (page = 1, limit = 20) => {
-    const { rows, total } = await faqCategoryModel.findAll(page, limit);
-    return { items: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
-  },
-  findById: faqCategoryModel.findById,
-  create: faqCategoryModel.create,
-  update: faqCategoryModel.update,
-  remove: faqCategoryModel.remove,
-}, "faq_category");
+export const faqCategoryController = {
+  list: asyncHandler(async (req: Request, res: Response) => {
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 50;
+    const status = req.query.status as "active" | "inactive" | undefined;
+    const { rows, total } = await categoryModel.findAll({ type: "faq", status }, page, limit);
+    res.json({ items: rows, total, page, limit, totalPages: Math.ceil(total / limit) });
+  }),
+
+  get: asyncHandler(async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const item = await categoryModel.findById(id);
+    if (!item || item.type !== "faq") {
+      throw new ApiError(404, "Categoría de FAQ no encontrada");
+    }
+    res.json({ item });
+  }),
+
+  create: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const actorId = req.adminUserId;
+    const id = await categoryModel.create({ ...req.body, type: "faq" });
+    if (actorId && id) {
+      await activityLogModel.log(actorId, "create", "category", id, req.body);
+    }
+    const item = await categoryModel.findById(id);
+    res.status(201).json({ id, item });
+  }),
+
+  update: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const actorId = req.adminUserId;
+    await categoryModel.update(id, req.body);
+    if (actorId) {
+      await activityLogModel.log(actorId, "update", "category", id, req.body);
+    }
+    res.json({ message: "Actualizado" });
+  }),
+
+  remove: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const id = parseInt(req.params.id, 10);
+    const actorId = req.adminUserId;
+    const item = await categoryModel.findById(id);
+    if (!item) {
+      throw new ApiError(404, "Categoría de FAQ no encontrada");
+    }
+    await categoryModel.remove(id);
+    if (actorId) {
+      await activityLogModel.log(actorId, "delete", "category", id);
+    }
+    res.json({ message: "Eliminado" });
+  }),
+};

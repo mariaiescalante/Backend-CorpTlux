@@ -6,11 +6,12 @@ const JSON_COLS = ["question", "answer"];
 
 export interface Faq {
   id: number;
-  faq_category_id: number;
+  category_id: number;
   question: unknown;
   answer: unknown;
   position: number;
   status: "active" | "inactive";
+  category_name?: unknown;
   created_by: number | null;
   updated_by: number | null;
   created_at: Date | string;
@@ -18,7 +19,8 @@ export interface Faq {
 }
 
 export interface FaqInput {
-  faq_category_id: number;
+  category_id?: number;
+  faq_category_id?: number;
   question: unknown;
   answer: unknown;
   position?: number;
@@ -27,28 +29,46 @@ export interface FaqInput {
   updated_by?: number | null;
 }
 
-export async function findAll(page = 1, limit = 20): Promise<{ rows: Faq[]; total: number }> {
+export async function findAll(page = 1, limit = 50, categoryId?: number): Promise<{ rows: Faq[]; total: number }> {
   const offset = (page - 1) * limit;
-  const [countRows] = await pool.query("SELECT COUNT(*) AS total FROM faqs");
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (categoryId) {
+    conditions.push("f.category_id = ?");
+    params.push(categoryId);
+  }
+
+  const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+  const [countRows] = await pool.query("SELECT COUNT(*) AS total FROM faqs f " + where, params);
   const total = (countRows as { total: number }[])[0].total;
-  const [rows] = await pool.query("SELECT * FROM faqs ORDER BY position, id LIMIT ? OFFSET ?", [limit, offset]);
+
+  const [rows] = await pool.query(
+    "SELECT f.*, c.name AS category_name FROM faqs f LEFT JOIN categories c ON f.category_id = c.id " + where + " ORDER BY f.position, f.id LIMIT ? OFFSET ?",
+    [...params, limit, offset]
+  );
+
   return {
-    rows: (rows as Faq[]).map((r) => jsonColumns(r as unknown as Record<string, unknown>, JSON_COLS)) as unknown as Faq[],
+    rows: (rows as Faq[]).map((r) => jsonColumns(r as unknown as Record<string, unknown>, [...JSON_COLS, "category_name"])) as unknown as Faq[],
     total,
   };
 }
 
 export async function findById(id: number): Promise<Faq | undefined> {
-  const [rows] = await pool.query("SELECT * FROM faqs WHERE id = ? LIMIT 1", [id]);
+  const [rows] = await pool.query(
+    "SELECT f.*, c.name AS category_name FROM faqs f LEFT JOIN categories c ON f.category_id = c.id WHERE f.id = ? LIMIT 1",
+    [id]
+  );
   const found = (rows as Faq[])[0];
-  return found ? (jsonColumns(found as unknown as Record<string, unknown>, JSON_COLS) as unknown as Faq) : undefined;
+  return found ? (jsonColumns(found as unknown as Record<string, unknown>, [...JSON_COLS, "category_name"]) as unknown as Faq) : undefined;
 }
 
 export async function create(data: FaqInput): Promise<number> {
+  const catId = data.category_id ?? data.faq_category_id;
   const [result] = await pool.query(
-    "INSERT INTO faqs (faq_category_id, question, answer, position, status, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO faqs (category_id, question, answer, position, status, created_by) VALUES (?, ?, ?, ?, ?, ?)",
     [
-      data.faq_category_id,
+      catId,
       JSON.stringify(data.question),
       JSON.stringify(data.answer),
       data.position ?? 0,
@@ -64,17 +84,11 @@ export async function update(id: number, data: Partial<FaqInput>): Promise<void>
   if (!current) {
     throw new ApiError(404, "FAQ no encontrada");
   }
+  const catId = data.category_id ?? data.faq_category_id;
   await pool.query(
-    `UPDATE faqs SET
-       faq_category_id = COALESCE(?, faq_category_id),
-       question = ?,
-       answer = ?,
-       position = COALESCE(?, position),
-       status = COALESCE(?, status),
-       updated_by = ?
-     WHERE id = ?`,
+    "UPDATE faqs SET category_id = COALESCE(?, category_id), question = ?, answer = ?, position = COALESCE(?, position), status = COALESCE(?, status), updated_by = ? WHERE id = ?",
     [
-      data.faq_category_id ?? null,
+      catId === undefined ? current.category_id : catId,
       data.question === undefined ? JSON.stringify(current.question) : JSON.stringify(data.question),
       data.answer === undefined ? JSON.stringify(current.answer) : JSON.stringify(data.answer),
       data.position ?? null,
