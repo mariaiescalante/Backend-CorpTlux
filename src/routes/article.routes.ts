@@ -383,8 +383,23 @@ router.delete(
   requirePermission("article.delete"),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    await pool.query("DELETE FROM articles WHERE id = ?", [id]);
-    res.json({ success: true, message: "Artículo eliminado de MySQL" });
+    try {
+      await pool.query("DELETE FROM article_tags WHERE article_id = ?", [id]);
+      await pool.query("DELETE FROM article_media WHERE article_id = ?", [id]);
+      await pool.query("DELETE FROM article_revisions WHERE article_id = ?", [id]);
+      const [delRes]: any = await pool.query("DELETE FROM articles WHERE id = ?", [id]);
+      res.json({
+        success: true,
+        message: "Artículo eliminado de MySQL",
+        affectedRows: delRes?.affectedRows
+      });
+    } catch (err: any) {
+      console.error("[ARTICLE_DELETE] Error al eliminar artículo:", err);
+      res.status(500).json({
+        success: false,
+        error: err?.message || "Error al eliminar artículo"
+      });
+    }
   })
 );
 

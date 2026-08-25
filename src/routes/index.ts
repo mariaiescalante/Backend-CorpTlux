@@ -10,6 +10,7 @@ import mediaRoutes from "./media.routes";
 import articleRoutes from "./article.routes";
 import leadRoutes from "./lead.routes";
 import landingRoutes from "./landing.routes";
+import aiRoutes from "./ai.routes";
 import sectionAnalyticsRoutes from "./sectionAnalytics.routes";
 import translateRoutes from "./translate.routes";
 
@@ -26,6 +27,7 @@ router.use("/media", mediaRoutes);
 router.use("/articles", articleRoutes);
 router.use("/leads", leadRoutes);
 router.use("/landing", landingRoutes);
+router.use("/ai", aiRoutes);
 router.use("/analytics", sectionAnalyticsRoutes);
 router.use("/translate", translateRoutes);
 
